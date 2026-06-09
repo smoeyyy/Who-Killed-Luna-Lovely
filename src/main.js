@@ -14,7 +14,7 @@ let config = {
             debug: false
         }
     },
-    scene: [Load, Title, Pause, Game]
+    scene: [Load, Title, Pause, End, Game]
 }
 
 var cursors;

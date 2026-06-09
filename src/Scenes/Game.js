@@ -127,6 +127,10 @@ class Game extends Phaser.Scene {
             return;
         }
 
+        if (this.checkTownExit()) {
+            return;
+        }
+
         this.reportDoorContacts();
         this.player.setDepth(1000 + this.player.y);
     }
@@ -650,7 +654,8 @@ class Game extends Phaser.Scene {
                 captured: false
             },
             caseCompletePending: false,
-            caseCompleteShown: false
+            caseCompleteShown: false,
+            caseCompleteDismissed: false
         };
         this.dialogueButtonY = camera.height
             - 10
@@ -1238,6 +1243,10 @@ class Game extends Phaser.Scene {
         this.dialogueContainer.setVisible(false);
         this.dialogueOpen = false;
 
+        if (closedStage === "case-complete") {
+            this.houseDialogueState.caseCompleteDismissed = true;
+        }
+
         const closedPostArrestDialogue = /^house-[123]-post-arrest$/.test(
             closedStage || ""
         );
@@ -1359,6 +1368,17 @@ class Game extends Phaser.Scene {
                 entranceBanners[1].object.y
             ) * 0.5
         };
+        const leftBannerRight = (
+            entranceBanners[0].object.x +
+            entranceBanners[0].width
+        );
+        const rightBannerLeft = entranceBanners[1].object.x;
+        this.townExitTrigger = new Phaser.Geom.Rectangle(
+            leftBannerRight,
+            this.fugitivePosition.y - 30,
+            rightBannerLeft - leftBannerRight,
+            60
+        );
 
         const signCenter = {
             x: sign.object.x + sign.width * 0.5,
@@ -1397,12 +1417,7 @@ class Game extends Phaser.Scene {
         };
 
         this.investigationTriggers = {
-            sign: new Phaser.Geom.Rectangle(
-                signCenter.x - 34,
-                signCenter.y - 30,
-                68,
-                60
-            ),
+            signX: signCenter.x,
             stairs: new Phaser.Geom.Rectangle(
                 hayCenter.x - 76,
                 hayCenter.y + 19,
@@ -1523,10 +1538,7 @@ class Game extends Phaser.Scene {
 
         if (
             !blacksmithState.signTrailNoticed &&
-            Phaser.Geom.Intersects.RectangleToRectangle(
-                playerFeet,
-                this.investigationTriggers.sign
-            )
+            this.player.x <= this.investigationTriggers.signX
         ) {
             blacksmithState.signTrailNoticed = true;
             this.showInvestigationPopup(
@@ -1628,6 +1640,34 @@ class Game extends Phaser.Scene {
         }
 
         this.showCaseCompleteDialogue();
+        return true;
+    }
+
+    checkTownExit() {
+        if (
+            !this.houseDialogueState.caseCompleteDismissed ||
+            !this.townExitTrigger ||
+            this.endGameStarted
+        ) {
+            return false;
+        }
+
+        const playerFeet = new Phaser.Geom.Rectangle(
+            this.player.x - 6,
+            this.player.y + 3,
+            12,
+            9
+        );
+
+        if (!Phaser.Geom.Intersects.RectangleToRectangle(
+            playerFeet,
+            this.townExitTrigger
+        )) {
+            return false;
+        }
+
+        this.endGameStarted = true;
+        this.scene.start("endScene");
         return true;
     }
 
