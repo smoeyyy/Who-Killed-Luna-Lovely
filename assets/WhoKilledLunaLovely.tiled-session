@@ -1,0 +1,118 @@
+{
+    "activeFile": "PrimValley.tmx",
+    "expandedProjectPaths": [
+        "."
+    ],
+    "file.lastUsedOpenFilter": "All Files (*)",
+    "fileStates": {
+        ":/automap-tiles.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilemaps/Beginning Fields.tmx": {
+            "scale": 1.3240625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 320.2265754071277,
+                "y": 320.2265754071277
+            }
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilemaps/Rules/RockSlopes_Rules.tmx": {
+            "scale": 0.6381024096385542,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 639.3957989143262,
+                "y": 664.4701439697899
+            }
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Animation_Campfire.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Animation_Flowers_Red.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Animation_Flowers_White.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Atlas_Buildings.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Atlas_Props.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Atlas_Rocks.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Atlas_Trees_Bushes.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Objects_Buildings.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Objects_Props.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Objects_Rocks.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Objects_Shadows.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Objects_Trees.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Tileset_Ground.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Tileset_RockSlope.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Tileset_RockSlope_Simple.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Tileset_Shadow.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Tileset_Water.tsx": {
+            "scaleInDock": 1
+        },
+        "C:/Users/willi/Downloads/The Fan-tasy Tileset (Free) 1.5.7/The Fan-tasy Tileset (Free)/Tiled/Tilesets/Tilesets_Road.tsx": {
+            "scaleInDock": 1
+        },
+        "PrimValley.tmx": {
+            "scale": 1.3240625,
+            "selectedLayer": 7,
+            "viewCenter": {
+                "x": 320.2265754071277,
+                "y": 320.2265754071277
+            }
+        },
+        "RockSlopes_Rules.tmx": {
+            "scale": 0.6381024096385542,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 639.3957989143262,
+                "y": 664.4701439697899
+            }
+        }
+    },
+    "last.exportedFilePath": "C:/Users/willi/Desktop/CMPM120/Who-Killed-Luna-Lovely/assets",
+    "map.height": 500,
+    "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 16,
+    "map.tileWidth": 16,
+    "map.width": 500,
+    "openFiles": [
+        "PrimValley.tmx",
+        "RockSlopes_Rules.tmx"
+    ],
+    "project": "WhoKilledLunaLovely.tiled-project",
+    "recentFiles": [
+        "RockSlopes_Rules.tmx",
+        "PrimValley.tmx"
+    ]
+}
