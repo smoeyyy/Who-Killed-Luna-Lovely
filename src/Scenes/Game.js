@@ -15,6 +15,7 @@ class Game extends Phaser.Scene {
         this.doorTriggers = [];
         this.activeDoorContacts = new Set();
         this.createDoorTriggers(levelMap, preparedLevel.gidLookup);
+        this.createInvestigationTriggers(levelMap, preparedLevel.gidLookup);
         this.collisionShapes = [];
         this.createTileLayerCollision(levelMap, preparedLevel.gidLookup);
         this.createObjectLayerCollision(levelMap, preparedLevel.gidLookup);
@@ -105,6 +106,27 @@ class Game extends Phaser.Scene {
 
         const movement = this.movePlayer(moveX * frameDistance, moveY * frameDistance);
         this.updatePlayerAnimation(movement.x, movement.y);
+
+        if (this.checkBlacksmithApproach()) {
+            this.player.setDepth(1000 + this.player.y);
+            return;
+        }
+
+        if (this.checkInvestigationTrail()) {
+            this.player.setDepth(1000 + this.player.y);
+            return;
+        }
+
+        if (this.checkFugitiveEncounter()) {
+            this.player.setDepth(1000 + this.player.y);
+            return;
+        }
+
+        if (this.checkCaseComplete()) {
+            this.player.setDepth(1000 + this.player.y);
+            return;
+        }
+
         this.reportDoorContacts();
         this.player.setDepth(1000 + this.player.y);
     }
@@ -571,6 +593,13 @@ class Game extends Phaser.Scene {
         );
         this.pressOption.setVisible(false);
 
+        this.listenOption = this.createDialogueOption(
+            0,
+            panelHeight * 0.24,
+            "Listen"
+        );
+        this.listenOption.setVisible(false);
+
         this.leaveOption = this.createDialogueOption(
             34,
             panelHeight * 0.24,
@@ -587,6 +616,7 @@ class Game extends Phaser.Scene {
                 this.askOption,
                 this.explainOption,
                 this.pressOption,
+                this.listenOption,
                 this.leaveOption
             ]
         );
@@ -595,10 +625,32 @@ class Game extends Phaser.Scene {
         this.dialogueContainer.setVisible(false);
         this.dialogueOpen = false;
         this.houseDialogueState = {
-            1: { informationLearned: false },
-            2: { stage: "initial" },
-            3: { informationLearned: false },
-            4: { informationAsked: false }
+            1: {
+                informationLearned: false,
+                situationExplained: false,
+                informedAfterArrest: false
+            },
+            2: {
+                stage: "initial",
+                informedAfterArrest: false
+            },
+            3: {
+                informationLearned: false,
+                argumentResolved: false,
+                informedAfterArrest: false
+            },
+            4: {
+                informationAsked: false,
+                approachHeard: false,
+                listened: false,
+                footprintsNoticed: false,
+                signTrailNoticed: false,
+                disturbedDirtNoticed: false,
+                weaponFound: false,
+                captured: false
+            },
+            caseCompletePending: false,
+            caseCompleteShown: false
         };
         this.dialogueButtonY = camera.height
             - 10
@@ -639,16 +691,49 @@ class Game extends Phaser.Scene {
 
         const optionWasClicked = (option) => (
             option.visible &&
-            Math.abs(pointer.x - (centerX + option.x * this.cameras.main.zoom)) <= hitWidth
+            Math.abs(pointer.x - (centerX + option.x * this.cameras.main.zoom)) <= Math.max(
+                hitWidth,
+                (option.displayWidth || hitWidth) * this.cameras.main.zoom * 0.5
+            )
         );
 
-        if (this.dialogueStage === "menu" && optionWasClicked(this.knockOption)) {
+        if (
+            this.dialogueStage === "blacksmith-caught" &&
+            optionWasClicked(this.leaveOption)
+        ) {
+            this.showBlacksmithDenial();
+        } else if (
+            this.dialogueStage === "blacksmith-denial" &&
+            optionWasClicked(this.leaveOption)
+        ) {
+            this.showBlacksmithConfession();
+        } else if (
+            this.dialogueStage === "blacksmith-confession" &&
+            optionWasClicked(this.leaveOption)
+        ) {
+            this.showBlacksmithArrested();
+        } else if (this.dialogueStage === "menu" && optionWasClicked(this.knockOption)) {
             this.showKnockDialogue();
+        } else if (
+            this.dialogueStage === "menu" &&
+            optionWasClicked(this.listenOption)
+        ) {
+            this.showBlacksmithEavesdropping();
         } else if (
             this.dialogueStage === "house-3-intro" &&
             optionWasClicked(this.explainOption)
         ) {
             this.showHouseThreeExplanation();
+        } else if (
+            this.dialogueStage === "house-2-final" &&
+            optionWasClicked(this.explainOption)
+        ) {
+            this.showHouseTwoBlacksmithComment();
+        } else if (
+            this.dialogueStage === "house-1-information" &&
+            optionWasClicked(this.explainOption)
+        ) {
+            this.showHouseOneFinalInformation();
         } else if (
             this.dialogueStage === "house-1-intro" &&
             optionWasClicked(this.askOption)
@@ -659,6 +744,16 @@ class Game extends Phaser.Scene {
             optionWasClicked(this.askOption)
         ) {
             this.showHouseThreeInformation();
+        } else if (
+            this.dialogueStage === "house-3-information" &&
+            optionWasClicked(this.askOption)
+        ) {
+            this.showHouseThreeArgument();
+        } else if (
+            this.dialogueStage === "house-3-argument" &&
+            optionWasClicked(this.pressOption)
+        ) {
+            this.showHouseThreeArgumentFinal();
         } else if (
             this.dialogueStage === "house-2-offer" &&
             optionWasClicked(this.askOption)
@@ -684,10 +779,32 @@ class Game extends Phaser.Scene {
         this.dialogueText.setText("What would you like to do?");
         this.dialogueStage = "menu";
         this.knockOption.setVisible(true);
+        this.askOption.setText("Ask for information");
         this.askOption.setVisible(false);
+        this.explainOption.setText("Explain yourself");
         this.explainOption.setVisible(false);
         this.pressOption.setVisible(false);
-        this.leaveOption.setPosition(34, this.dialoguePanel.displayHeight * 0.24);
+        this.listenOption.setVisible(false);
+        this.leaveOption.setText("Leave");
+
+        const blacksmithState = this.houseDialogueState[4];
+        const canListen = (
+            door.buildingId === 4 &&
+            this.houseDialogueState[1].situationExplained &&
+            blacksmithState.approachHeard &&
+            !blacksmithState.listened
+        );
+
+        if (canListen) {
+            this.dialogueText.setText("You hear the blacksmith muttering to himself.");
+            this.knockOption.setPosition(-56, this.dialoguePanel.displayHeight * 0.24);
+            this.listenOption.setVisible(true);
+            this.leaveOption.setPosition(56, this.dialoguePanel.displayHeight * 0.24);
+        } else {
+            this.knockOption.setPosition(-34, this.dialoguePanel.displayHeight * 0.24);
+            this.leaveOption.setPosition(34, this.dialoguePanel.displayHeight * 0.24);
+        }
+
         this.player.anims.stop();
         this.updatePlayerAnimation(0, 0);
         this.dialogueContainer.setVisible(true);
@@ -702,12 +819,22 @@ class Game extends Phaser.Scene {
         }
 
         this.knockOption.setVisible(false);
+        this.listenOption.setVisible(false);
         const houseOneState = this.houseDialogueState[1];
         const houseTwoState = this.houseDialogueState[2];
         const houseThreeState = this.houseDialogueState[3];
         const blacksmithState = this.houseDialogueState[4];
+        let shouldShowCharacter = true;
 
-        if (door.buildingId === 1 && houseOneState.informationLearned) {
+        if (
+            blacksmithState.captured &&
+            door.buildingId >= 1 &&
+            door.buildingId <= 3
+        ) {
+            this.showPostArrestHouseDialogue(door.buildingId);
+        } else if (door.buildingId === 1 && houseOneState.situationExplained) {
+            this.showHouseOneFinalInformation();
+        } else if (door.buildingId === 1 && houseOneState.informationLearned) {
             this.showHouseOneInformation();
         } else if (door.buildingId === 1) {
             this.dialogueStage = "house-1-intro";
@@ -716,6 +843,8 @@ class Game extends Phaser.Scene {
             this.dialogueText.setText(
                 "Luna? Luna was my daughter. I can't believe someone would do something so gruesome. Please find the murderer so my Luna can rest in peace."
             );
+        } else if (door.buildingId === 2 && houseTwoState.stage === "blacksmith-comment") {
+            this.showHouseTwoBlacksmithComment();
         } else if (door.buildingId === 2 && houseTwoState.stage === "final") {
             this.showHouseTwoFinalClue();
         } else if (door.buildingId === 2 && houseTwoState.stage === "admission") {
@@ -732,6 +861,8 @@ class Game extends Phaser.Scene {
             this.dialogueText.setText(
                 "Best shoe repairs west of Mount Kalamaya. 20 silver per shoe but you know you're paying for quality work here, quality work."
             );
+        } else if (door.buildingId === 3 && houseThreeState.argumentResolved) {
+            this.showHouseThreeArgumentFinal();
         } else if (door.buildingId === 3 && houseThreeState.informationLearned) {
             this.showHouseThreeInformation();
         } else if (door.buildingId === 3) {
@@ -740,8 +871,14 @@ class Game extends Phaser.Scene {
             this.explainOption.setVisible(true);
             this.leaveOption.setPosition(52, this.dialoguePanel.displayHeight * 0.24);
             this.dialogueText.setText(
-                "Oh, you're from out of town. We don't get many visitors in Prim Valley, especially not recently..."
+                "Oh, you're from out of town. We don't get many visitors in Prim Valley, especially not recently... I'm Lily."
             );
+        } else if (
+            door.buildingId === 4 &&
+            (blacksmithState.captured || blacksmithState.listened)
+        ) {
+            shouldShowCharacter = false;
+            this.showBlacksmithGone();
         } else if (door.buildingId === 4 && blacksmithState.informationAsked) {
             this.showBlacksmithInformation();
         } else if (door.buildingId === 4 && houseOneState.informationLearned) {
@@ -765,7 +902,7 @@ class Game extends Phaser.Scene {
             );
         }
 
-        if (!this.dialogueCharacter) {
+        if (shouldShowCharacter && !this.dialogueCharacter) {
             this.dialogueCharacter = this.add.sprite(
                 door.x + door.width + 8,
                 door.y + door.height,
@@ -775,6 +912,25 @@ class Game extends Phaser.Scene {
             this.dialogueCharacter.setOrigin(0.5, 1);
             this.dialogueCharacter.setDepth(1000 + this.dialogueCharacter.y);
         }
+    }
+
+    showPostArrestHouseDialogue(buildingId) {
+        const postArrestDialogue = {
+            1: "It was the blacksmith all along? Oh I knew something was wrong with that boy the way he looked at my Luna. Thank you for catching him detective, now my Luna can rest in peace.",
+            2: "The blacksmith? I knew it. He never left that poor girl alone. Thank goodness he's gone for good.",
+            3: "Oh my. I think I need to sit down. The blacksmith killed Luna? To know that I've been in love with my best friend's murderer, how can I ever forgive myself? Thank you for finding Luna's killer detective, but I need some time alone."
+        };
+
+        this.houseDialogueState[buildingId].informedAfterArrest = true;
+        this.dialogueStage = `house-${buildingId}-post-arrest`;
+        this.knockOption.setVisible(false);
+        this.askOption.setVisible(false);
+        this.explainOption.setVisible(false);
+        this.pressOption.setVisible(false);
+        this.listenOption.setVisible(false);
+        this.leaveOption.setText("Leave");
+        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.dialogueText.setText(postArrestDialogue[buildingId]);
     }
 
     showHouseTwoAdmission() {
@@ -793,13 +949,32 @@ class Game extends Phaser.Scene {
     showHouseTwoFinalClue() {
         this.houseDialogueState[2].stage = "final";
         this.dialogueStage = "house-2-final";
+        const lilyConfessionLearned = this.houseDialogueState[3].argumentResolved;
+
+        this.knockOption.setVisible(false);
+        this.askOption.setVisible(false);
+        this.explainOption.setText("Explain the situation");
+        this.explainOption.setVisible(lilyConfessionLearned);
+        this.pressOption.setVisible(false);
+        this.leaveOption.setPosition(
+            lilyConfessionLearned ? 62 : 0,
+            this.dialoguePanel.displayHeight * 0.24
+        );
+        this.dialogueText.setText(
+            "I heard she got into a big argument with Lily the night before she was murdered. I'm not making any accusations here, but that may be worth looking into."
+        );
+    }
+
+    showHouseTwoBlacksmithComment() {
+        this.houseDialogueState[2].stage = "blacksmith-comment";
+        this.dialogueStage = "house-2-blacksmith-comment";
         this.knockOption.setVisible(false);
         this.askOption.setVisible(false);
         this.explainOption.setVisible(false);
         this.pressOption.setVisible(false);
         this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
         this.dialogueText.setText(
-            "I heard she got into a big argument with Lily the night before she was murdered. I'm not making any accusations here, but that may be worth looking into."
+            "All this over that blacksmith? He has shifty eyes, I've always said so."
         );
     }
 
@@ -817,26 +992,76 @@ class Game extends Phaser.Scene {
     showHouseThreeInformation() {
         this.houseDialogueState[3].informationLearned = true;
         this.dialogueStage = "house-3-information";
+        const argumentClueLearned = this.houseDialogueState[2].stage === "final";
+
+        this.knockOption.setVisible(false);
+        this.askOption.setText("Ask about argument");
+        this.askOption.setVisible(argumentClueLearned);
+        this.explainOption.setVisible(false);
+        this.pressOption.setVisible(false);
+        this.leaveOption.setPosition(
+            argumentClueLearned ? 60 : 0,
+            this.dialoguePanel.displayHeight * 0.24
+        );
+        this.dialogueText.setText(
+            "Luna was my best friend since we were children, I've been terribly distraught since she died. The cobbler never liked Luna and I, she might know something. Her house is the one with the flowers."
+        );
+    }
+
+    showHouseThreeArgument() {
+        this.dialogueStage = "house-3-argument";
+        this.knockOption.setVisible(false);
+        this.askOption.setVisible(false);
+        this.explainOption.setVisible(false);
+        this.pressOption.setVisible(true);
+        this.leaveOption.setPosition(34, this.dialoguePanel.displayHeight * 0.24);
+        this.dialogueText.setText(
+            "An argument with Luna? Yes, we did have an argument. I suppose there's no point in hiding it now. I've been in love with the blacksmith since the three of us were children, but he's only ever had eyes for Luna."
+        );
+    }
+
+    showHouseThreeArgumentFinal() {
+        this.houseDialogueState[3].argumentResolved = true;
+        this.dialogueStage = "house-3-argument-final";
         this.knockOption.setVisible(false);
         this.askOption.setVisible(false);
         this.explainOption.setVisible(false);
         this.pressOption.setVisible(false);
         this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
         this.dialogueText.setText(
-            "Luna was my best friend since we were children, I've been terribly distraught since she died. The cobbler never liked Luna and I, maybe she knows something. Her house is the one with the flowers."
+            "The day before she was murdered the blacksmith had brought her a lovely bouquet of daisies, my favorite flowers. He's been head over heels for ages now, but this was the final straw. I was so jealous of her in that moment, but I truly would never murder my best friend. I feel so terrible about it now, please, you must believe me!"
         );
     }
 
     showHouseOneInformation() {
         this.houseDialogueState[1].informationLearned = true;
         this.dialogueStage = "house-1-information";
+        const blacksmithConfronted = this.houseDialogueState[4].informationAsked;
+
+        this.knockOption.setVisible(false);
+        this.askOption.setVisible(false);
+        this.explainOption.setText("Explain the situation");
+        this.explainOption.setVisible(blacksmithConfronted);
+        this.pressOption.setVisible(false);
+        this.leaveOption.setPosition(
+            blacksmithConfronted ? 62 : 0,
+            this.dialoguePanel.displayHeight * 0.24
+        );
+        this.dialogueText.setText(
+            "The blacksmith has been obsessed with my Luna for years and he's been acting strangely. He might know something. He lives in the smallest house in the Prim Valley."
+        );
+    }
+
+    showHouseOneFinalInformation() {
+        this.houseDialogueState[1].situationExplained = true;
+        this.dialogueStage = "house-1-final";
         this.knockOption.setVisible(false);
         this.askOption.setVisible(false);
         this.explainOption.setVisible(false);
         this.pressOption.setVisible(false);
         this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
         this.dialogueText.setText(
-            "The blacksmith has been obsessed with my Luna for years and he's been acting strangely. He might know something. He lives in the smallest house in the Prim Valley."
+            "He wouldn't talk to you? That figures. He's always been a bit of a weird one but he's been acting even more out of character recently. Since Luna's death he's been reclusive and refuses to leave his house. I can't tell if it's grief or if he has something to hide. Sometimes he mumbles to himself but I can never quite hear what he's saying"
         );
     }
 
@@ -853,7 +1078,156 @@ class Game extends Phaser.Scene {
         );
     }
 
+    showBlacksmithApproachDialogue(door) {
+        this.houseDialogueState[4].approachHeard = true;
+        this.currentDoor = door;
+        this.dialogueStage = "house-4-approach";
+        this.knockOption.setVisible(false);
+        this.askOption.setVisible(false);
+        this.explainOption.setVisible(false);
+        this.pressOption.setVisible(false);
+        this.listenOption.setVisible(false);
+        this.leaveOption.setText("I should probably go investigate");
+        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.dialogueText.setText(
+            "You hear noises coming from the blacksmith's house. There's a brief banging noise, some faint cursing, and then silence."
+        );
+        this.player.anims.stop();
+        this.updatePlayerAnimation(0, 0);
+        this.dialogueContainer.setVisible(true);
+        this.dialogueOpen = true;
+    }
+
+    showBlacksmithEavesdropping() {
+        this.houseDialogueState[4].listened = true;
+        this.dialogueStage = "house-4-listened";
+        this.knockOption.setVisible(false);
+        this.askOption.setVisible(false);
+        this.explainOption.setVisible(false);
+        this.pressOption.setVisible(false);
+        this.listenOption.setVisible(false);
+        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.dialogueText.setText(
+            'You hear the blacksmith muttering, "Keys, papers, tools, what else am I missing? Oh, I should have gotten out of here sooner, now there\'s a detective after me. What am I going to do?"'
+        );
+    }
+
+    showBlacksmithGone() {
+        this.dialogueStage = "house-4-gone";
+        this.knockOption.setVisible(false);
+        this.askOption.setVisible(false);
+        this.explainOption.setVisible(false);
+        this.pressOption.setVisible(false);
+        this.listenOption.setVisible(false);
+        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.dialogueText.setText("No one answers.");
+    }
+
+    showInvestigationPopup(stage, text, optionText) {
+        this.currentDoor = null;
+        this.dialogueStage = stage;
+        this.knockOption.setVisible(false);
+        this.askOption.setVisible(false);
+        this.explainOption.setVisible(false);
+        this.pressOption.setVisible(false);
+        this.listenOption.setVisible(false);
+        this.leaveOption.setText(optionText);
+        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.dialogueText.setText(text);
+        this.player.anims.stop();
+        this.updatePlayerAnimation(0, 0);
+        this.dialogueContainer.setVisible(true);
+        this.dialogueOpen = true;
+    }
+
+    spawnFugitiveBlacksmith() {
+        const blacksmithState = this.houseDialogueState[4];
+
+        if (
+            !this.fugitivePosition ||
+            this.fugitiveBlacksmith ||
+            blacksmithState.captured
+        ) {
+            return;
+        }
+
+        const blacksmithDoor = this.doorTriggers.find(
+            (door) => door.buildingId === 4
+        );
+        const characterIndex = blacksmithDoor?.characterIndex ?? 3;
+
+        this.fugitiveBlacksmith = this.add.sprite(
+            this.fugitivePosition.x,
+            this.fugitivePosition.y,
+            "characters",
+            `character-${characterIndex}-down-1`
+        );
+        this.fugitiveBlacksmith.setOrigin(0.5, 1);
+        this.fugitiveBlacksmith.setDepth(1000 + this.fugitiveBlacksmith.y);
+    }
+
+    showFugitiveEncounter() {
+        this.dialogueStage = "blacksmith-caught";
+        this.knockOption.setVisible(false);
+        this.askOption.setVisible(false);
+        this.explainOption.setVisible(false);
+        this.pressOption.setVisible(false);
+        this.listenOption.setVisible(false);
+        this.leaveOption.setText("You killed Luna Lovely.");
+        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.dialogueText.setText(
+            "You catch the blacksmith at the edge of town and call out for him to stop. He turns around in surprise and stops, fiddling with his bag and refusing to make eye contact."
+        );
+        this.player.anims.stop();
+        this.updatePlayerAnimation(0, 0);
+        this.dialogueContainer.setVisible(true);
+        this.dialogueOpen = true;
+    }
+
+    showBlacksmithDenial() {
+        this.dialogueStage = "blacksmith-denial";
+        this.leaveOption.setText("I found the hammer.");
+        this.dialogueText.setText(
+            "I-What-No! What would make you think such a thing?"
+        );
+    }
+
+    showBlacksmithConfession() {
+        this.dialogueStage = "blacksmith-confession";
+        this.leaveOption.setText("Take him away.");
+        this.dialogueText.setText(
+            'The blacksmith\'s face drains of color, "I-Well-She deserved it! I was in love with that woman for years and she refused to even give me a chance. If I can\'t have her no one can!"'
+        );
+    }
+
+    showBlacksmithArrested() {
+        this.houseDialogueState[4].captured = true;
+        this.dialogueStage = "blacksmith-arrested";
+
+        if (this.fugitiveBlacksmith) {
+            this.fugitiveBlacksmith.destroy();
+            this.fugitiveBlacksmith = null;
+        }
+
+        this.leaveOption.setText("I should inform the townspeople.");
+        this.dialogueText.setText(
+            "You turn the blacksmith in to the local jail. He won't be getting out any time soon."
+        );
+    }
+
+    showCaseCompleteDialogue() {
+        this.houseDialogueState.caseCompletePending = false;
+        this.houseDialogueState.caseCompleteShown = true;
+        this.showInvestigationPopup(
+            "case-complete",
+            "The Prim Valley killer has been brought to justice. Your work here is done. Time to find another town, another mystery, and solve another case.",
+            "Leave town"
+        );
+    }
+
     closeDialogue() {
+        const closedStage = this.dialogueStage;
+
         if (this.dialogueCharacter) {
             this.dialogueCharacter.destroy();
             this.dialogueCharacter = null;
@@ -863,6 +1237,25 @@ class Game extends Phaser.Scene {
         this.dialogueStage = null;
         this.dialogueContainer.setVisible(false);
         this.dialogueOpen = false;
+
+        const closedPostArrestDialogue = /^house-[123]-post-arrest$/.test(
+            closedStage || ""
+        );
+        const allTownspeopleInformed = [1, 2, 3].every(
+            (buildingId) => this.houseDialogueState[buildingId].informedAfterArrest
+        );
+
+        if (
+            closedPostArrestDialogue &&
+            allTownspeopleInformed &&
+            !this.houseDialogueState.caseCompleteShown
+        ) {
+            this.houseDialogueState.caseCompletePending = true;
+            this.caseCompleteStartPosition = {
+                x: this.player.x,
+                y: this.player.y
+            };
+        }
     }
 
     createDoorTriggers(map, gidLookup) {
@@ -916,6 +1309,115 @@ class Game extends Phaser.Scene {
         });
     }
 
+    createInvestigationTriggers(map, gidLookup) {
+        const propObjects = [];
+
+        map.objects.forEach((layer) => {
+            layer.objects.forEach((object) => {
+                if (!object.gid) {
+                    return;
+                }
+
+                const tileInfo = this.resolveObjectTile(object.gid, gidLookup);
+                const image = tileInfo?.tile?.image || "";
+
+                if (
+                    image.includes("BulletinBoard_1.png") ||
+                    image.includes("HayStack_2.png") ||
+                    image.includes("Banner_Stick_1_Purple.png")
+                ) {
+                    propObjects.push({
+                        object,
+                        image,
+                        width: tileInfo.tile.imagewidth,
+                        height: tileInfo.tile.imageheight
+                    });
+                }
+            });
+        });
+
+        const sign = propObjects.find((entry) => entry.image.includes("BulletinBoard_1.png"));
+        const banners = propObjects
+            .filter((entry) => entry.image.includes("Banner_Stick_1_Purple.png"))
+            .sort((a, b) => a.object.x - b.object.x);
+
+        if (!sign || banners.length < 2) {
+            this.investigationTriggers = null;
+            return;
+        }
+
+        const entranceBanners = banners.slice(-2);
+        this.fugitivePosition = {
+            x: (
+                entranceBanners[0].object.x +
+                entranceBanners[0].width * 0.5 +
+                entranceBanners[1].object.x +
+                entranceBanners[1].width * 0.5
+            ) * 0.5,
+            y: (
+                entranceBanners[0].object.y +
+                entranceBanners[1].object.y
+            ) * 0.5
+        };
+
+        const signCenter = {
+            x: sign.object.x + sign.width * 0.5,
+            y: sign.object.y - sign.height * 0.5
+        };
+        const haystack = propObjects
+            .filter((entry) => (
+                entry.image.includes("HayStack_2.png") &&
+                entry.object.x < signCenter.x &&
+                entry.object.y < signCenter.y
+            ))
+            .sort((a, b) => {
+                const distanceA = Phaser.Math.Distance.Between(
+                    signCenter.x,
+                    signCenter.y,
+                    a.object.x + a.width * 0.5,
+                    a.object.y - a.height * 0.5
+                );
+                const distanceB = Phaser.Math.Distance.Between(
+                    signCenter.x,
+                    signCenter.y,
+                    b.object.x + b.width * 0.5,
+                    b.object.y - b.height * 0.5
+                );
+                return distanceA - distanceB;
+            })[0];
+
+        if (!haystack) {
+            this.investigationTriggers = null;
+            return;
+        }
+
+        const hayCenter = {
+            x: haystack.object.x + haystack.width * 0.5,
+            y: haystack.object.y - haystack.height * 0.5
+        };
+
+        this.investigationTriggers = {
+            sign: new Phaser.Geom.Rectangle(
+                signCenter.x - 34,
+                signCenter.y - 30,
+                68,
+                60
+            ),
+            stairs: new Phaser.Geom.Rectangle(
+                hayCenter.x - 76,
+                hayCenter.y + 19,
+                56,
+                48
+            ),
+            haystack: new Phaser.Geom.Rectangle(
+                haystack.object.x - 5,
+                haystack.object.y - haystack.height - 5,
+                haystack.width + 10,
+                haystack.height + 10
+            )
+        };
+    }
+
     collectDoorContactsAt(x, y) {
         const footBox = new Phaser.Geom.Rectangle(x - 6, y + 3, 12, 9);
 
@@ -926,6 +1428,207 @@ class Game extends Phaser.Scene {
                 this.frameDoorContacts.add(door.id);
             }
         });
+    }
+
+    checkBlacksmithApproach() {
+        const houseOneState = this.houseDialogueState[1];
+        const houseTwoState = this.houseDialogueState[2];
+        const houseThreeState = this.houseDialogueState[3];
+        const blacksmithState = this.houseDialogueState[4];
+        const allNpcCluesComplete = (
+            houseOneState.situationExplained &&
+            houseTwoState.stage === "blacksmith-comment" &&
+            houseThreeState.argumentResolved &&
+            blacksmithState.informationAsked
+        );
+
+        if (
+            !allNpcCluesComplete ||
+            blacksmithState.approachHeard ||
+            this.dialogueOpen
+        ) {
+            return false;
+        }
+
+        const door = this.doorTriggers.find((entry) => entry.buildingId === 4);
+
+        if (!door) {
+            return false;
+        }
+
+        const approachBounds = new Phaser.Geom.Rectangle(
+            door.x - 42,
+            door.y - 34,
+            door.width + 84,
+            door.height + 76
+        );
+        const playerFeet = new Phaser.Geom.Rectangle(
+            this.player.x - 6,
+            this.player.y + 3,
+            12,
+            9
+        );
+
+        if (!Phaser.Geom.Intersects.RectangleToRectangle(playerFeet, approachBounds)) {
+            return false;
+        }
+
+        this.showBlacksmithApproachDialogue(door);
+        return true;
+    }
+
+    checkInvestigationTrail() {
+        const blacksmithState = this.houseDialogueState[4];
+
+        if (!blacksmithState.listened || !this.investigationTriggers) {
+            return false;
+        }
+
+        const playerFeet = new Phaser.Geom.Rectangle(
+            this.player.x - 6,
+            this.player.y + 3,
+            12,
+            9
+        );
+
+        if (!blacksmithState.footprintsNoticed) {
+            const door = this.doorTriggers.find((entry) => entry.buildingId === 4);
+
+            if (!door) {
+                return false;
+            }
+
+            const doorArea = new Phaser.Geom.Rectangle(
+                door.x - 12,
+                door.y - 12,
+                door.width + 24,
+                door.height + 24
+            );
+
+            if (
+                this.activeDoorContacts.has(door.id) ||
+                Phaser.Geom.Intersects.RectangleToRectangle(playerFeet, doorArea)
+            ) {
+                return false;
+            }
+
+            blacksmithState.footprintsNoticed = true;
+            this.showInvestigationPopup(
+                "blacksmith-footprints",
+                "You spot footprints leading west from the blacksmith's door.",
+                "I should follow him."
+            );
+            return true;
+        }
+
+        if (
+            !blacksmithState.signTrailNoticed &&
+            Phaser.Geom.Intersects.RectangleToRectangle(
+                playerFeet,
+                this.investigationTriggers.sign
+            )
+        ) {
+            blacksmithState.signTrailNoticed = true;
+            this.showInvestigationPopup(
+                "blacksmith-sign-trail",
+                "The footprints continue northwest.",
+                "Continue."
+            );
+            return true;
+        }
+
+        if (
+            blacksmithState.signTrailNoticed &&
+            !blacksmithState.disturbedDirtNoticed &&
+            Phaser.Geom.Intersects.RectangleToRectangle(
+                playerFeet,
+                this.investigationTriggers.stairs
+            )
+        ) {
+            blacksmithState.disturbedDirtNoticed = true;
+            this.showInvestigationPopup(
+                "blacksmith-disturbed-dirt",
+                "The dirt in this area is disheveled.",
+                "I should look around."
+            );
+            return true;
+        }
+
+        if (
+            blacksmithState.disturbedDirtNoticed &&
+            !blacksmithState.weaponFound &&
+            Phaser.Geom.Intersects.RectangleToRectangle(
+                playerFeet,
+                this.investigationTriggers.haystack
+            )
+        ) {
+            blacksmithState.weaponFound = true;
+            this.spawnFugitiveBlacksmith();
+            this.showInvestigationPopup(
+                "blacksmith-weapon-found",
+                "You find the murder weapon stashed in the haybale. A blacksmith's hammer, caked with dried blood.",
+                "I need to find the blacksmith. Now."
+            );
+            return true;
+        }
+
+        return false;
+    }
+
+    checkFugitiveEncounter() {
+        const blacksmithState = this.houseDialogueState[4];
+
+        if (
+            !blacksmithState.weaponFound ||
+            blacksmithState.captured ||
+            !this.fugitiveBlacksmith
+        ) {
+            return false;
+        }
+
+        const playerFeet = new Phaser.Geom.Rectangle(
+            this.player.x - 6,
+            this.player.y + 3,
+            12,
+            9
+        );
+        const blacksmithBounds = new Phaser.Geom.Rectangle(
+            this.fugitiveBlacksmith.x - 12,
+            this.fugitiveBlacksmith.y - 24,
+            24,
+            32
+        );
+
+        if (!Phaser.Geom.Intersects.RectangleToRectangle(playerFeet, blacksmithBounds)) {
+            return false;
+        }
+
+        this.showFugitiveEncounter();
+        return true;
+    }
+
+    checkCaseComplete() {
+        if (
+            !this.houseDialogueState.caseCompletePending ||
+            this.houseDialogueState.caseCompleteShown ||
+            !this.caseCompleteStartPosition
+        ) {
+            return false;
+        }
+
+        const distanceWalked = Phaser.Math.Distance.Between(
+            this.caseCompleteStartPosition.x,
+            this.caseCompleteStartPosition.y,
+            this.player.x,
+            this.player.y
+        );
+
+        if (distanceWalked < 32) {
+            return false;
+        }
+
+        this.showCaseCompleteDialogue();
+        return true;
     }
 
     reportDoorContacts() {
