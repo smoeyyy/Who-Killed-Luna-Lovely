@@ -22,3 +22,9 @@ const SCALE = 2.0;
 var my = {sprite: {}};
 
 const game = new Phaser.Game(config);
+
+game.events.once("ready", () => {
+    const canvas = game.canvas;
+    canvas.tabIndex = 0;
+    canvas.addEventListener("pointerdown", () => canvas.focus());
+});

@@ -41,15 +41,12 @@ class Game extends Phaser.Scene {
             left: Phaser.Input.Keyboard.KeyCodes.A,
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
-        this.handlePauseKey = (event) => {
-            if (event.key === "Escape" || event.code === "Escape" || event.keyCode === 27) {
-                this.openPauseScreen();
-            }
-        };
-        window.addEventListener("keydown", this.handlePauseKey);
-        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-            window.removeEventListener("keydown", this.handlePauseKey);
-        });
+        this.pauseKey = this.input.keyboard.addKey(
+            Phaser.Input.Keyboard.KeyCodes.ESC,
+            true
+        );
+        this.pauseKey.on("down", this.openPauseScreen, this);
+        this.gamePaused = false;
 
         this.cursors = this.input.keyboard.createCursorKeys();
 
@@ -67,6 +64,10 @@ class Game extends Phaser.Scene {
 
     update() {
         if (!this.player || !this.player.body) {
+            return;
+        }
+
+        if (this.gamePaused) {
             return;
         }
 
@@ -109,12 +110,23 @@ class Game extends Phaser.Scene {
     }
 
     openPauseScreen() {
-        if (this.scene.manager.isActive("pauseScene")) {
+        if (this.gamePaused || this.scene.manager.isActive("pauseScene")) {
             return;
         }
 
+        this.gamePaused = true;
+        this.physics.world.pause();
+        this.player.anims.pause();
+        this.input.enabled = false;
         this.scene.launch("pauseScene", { returnScene: "gameScene" });
-        this.scene.pause("gameScene");
+        this.scene.bringToTop("pauseScene");
+    }
+
+    resumeFromPause() {
+        this.gamePaused = false;
+        this.physics.world.resume();
+        this.player.anims.resume();
+        this.input.enabled = true;
     }
 
     prepareTiledMap(mapKey) {

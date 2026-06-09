@@ -24,7 +24,7 @@ class Pause extends Phaser.Scene {
         this.add.text(
             layout.leftX,
             layout.top + layout.pageHeight * 0.32,
-            "Explore Prim Valley\nQuestion the townspeople\nFind the murderer",
+            "Explore Prim Valley\nQuestion the townspeople\nFind the murderer\n\n\n\n\n\nESC to PAUSE/UNPAUSE\nWASD to MOVE",
             {
                 font: "20px Georgia",
                 color: "#55372f",
@@ -46,7 +46,7 @@ class Pause extends Phaser.Scene {
         this.add.text(
             layout.rightX,
             layout.top + layout.pageHeight * 0.32,
-            "Game design and implementation - Trinity Willis\n\nUses free assets from itch.io,\nlinks in README",
+            "Game design and implementation\nTrinity Willis\n\nUses free assets from itch.io,\nlinks in README",
             {
                 font: "18px Georgia",
                 color: "#55372f",
@@ -56,27 +56,28 @@ class Pause extends Phaser.Scene {
         ).setOrigin(0.5, 0);
 
         this.createButton(
-            this.scale.width * 0.5,
-            layout.top + layout.pageHeight * 0.86,
+            layout.rightX,
+            layout.top + layout.pageHeight * 0.72,
             "Restart",
             () => this.restartToTitle()
         );
 
-        this.time.delayedCall(150, () => {
-            this.handleEscapeKey = (event) => {
-                if (event.key === "Escape" || event.code === "Escape" || event.keyCode === 27) {
-                    window.removeEventListener("keydown", this.handleEscapeKey);
-                    this.closePause();
-                }
-            };
-            window.addEventListener("keydown", this.handleEscapeKey);
-        });
+        this.escapeKey = this.input.keyboard.addKey(
+            Phaser.Input.Keyboard.KeyCodes.ESC,
+            true
+        );
+        this.escapeReleased = this.escapeKey.isUp;
+    }
 
-        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-            if (this.handleEscapeKey) {
-                window.removeEventListener("keydown", this.handleEscapeKey);
-            }
-        });
+    update() {
+        if (!this.escapeReleased) {
+            this.escapeReleased = this.escapeKey.isUp;
+            return;
+        }
+
+        if (Phaser.Input.Keyboard.JustDown(this.escapeKey)) {
+            this.closePause();
+        }
     }
 
     createBook() {
@@ -125,7 +126,11 @@ class Pause extends Phaser.Scene {
 
     closePause() {
         if (this.returnScene === "gameScene") {
-            this.scene.resume("gameScene");
+            const gameScene = this.scene.get("gameScene");
+
+            if (gameScene) {
+                gameScene.resumeFromPause();
+            }
         }
 
         this.scene.stop();
