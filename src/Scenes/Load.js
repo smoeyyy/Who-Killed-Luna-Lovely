@@ -13,6 +13,7 @@ class Load extends Phaser.Scene {
         this.load.image("pageLeft", "assets/pageleft.png");
         this.load.image("pageRight", "assets/pageright.png");
 
+        // Loads the map's tile information and the images that go with it.
         TILESET_SOURCES.forEach((tileset) => {
             this.load.text(tileset.key, tileset.tsx);
 
@@ -28,10 +29,11 @@ class Load extends Phaser.Scene {
             this.load.image(image.key, image.path);
         });
 
+        // Loads every shadow image that may appear on the map.
         ["Round", "Sqare"].forEach((shape) => {
             ["16x16", "16x32", "24x24", "24x48", "32x16", "32x32", "40x40", "48x24", "48x48"].forEach((size) => {
-                ["Flat", "Short", "Medium", "Long"].forEach((length) => {
-                    const path = `assets/Art/Shadows/Shadow_${shape}_${size}_${length}_Black.png`;
+                ["Flat", "Short", "Medium", "Long"].forEach((shadowLength) => {
+                    const path = `assets/Art/Shadows/Shadow_${shape}_${size}_${shadowLength}_Black.png`;
                     this.load.image(path, path);
                 });
             });
@@ -40,9 +42,6 @@ class Load extends Phaser.Scene {
 
     create() {
         this.scene.start("titleScene");
-    }
-
-    update() {
     }
 }
 

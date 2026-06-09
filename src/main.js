@@ -1,28 +1,25 @@
-"use strict"
+"use strict";
 
-let config = {
-    parent: 'phaser-game',
+const config = {
+    parent: "phaser-game",
     type: Phaser.CANVAS,
     render: {
-        pixelArt: true  // prevent pixel art from getting blurred when scaled
+        pixelArt: true
     },
     width: 1280,
     height: 800,
     physics: {
-        default: 'arcade',
+        default: "arcade",
         arcade: {
             debug: false
         }
     },
     scene: [Load, Title, Pause, End, Game]
-}
-
-var cursors;
-const SCALE = 2.0;
-var my = {sprite: {}};
+};
 
 const game = new Phaser.Game(config);
 
+// Lets the game receive keyboard controls after the player clicks it.
 game.events.once("ready", () => {
     const canvas = game.canvas;
     canvas.tabIndex = 0;

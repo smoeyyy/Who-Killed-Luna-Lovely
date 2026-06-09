@@ -155,6 +155,7 @@ class Game extends Phaser.Scene {
         this.input.enabled = true;
     }
 
+    // Prepares the saved map data so the game can read all of its tiles.
     prepareTiledMap(mapKey) {
         const originalMap = this.cache.tilemap.get(mapKey).data;
         const mapData = JSON.parse(JSON.stringify(originalMap));
@@ -235,6 +236,7 @@ class Game extends Phaser.Scene {
         this.player.play(`player-walk-${this.playerFacing}`, true);
     }
 
+    // Converts one tile information file into data the game can use.
     embedTileset(mapTileset) {
         const sourceName = this.getTilesetSourceName(mapTileset.source);
         const source = TILESET_SOURCES.find((tileset) => tileset.name === sourceName || tileset.tsx.endsWith(`${sourceName}.tsx`));
@@ -365,6 +367,7 @@ class Game extends Phaser.Scene {
             .map((tileset) => map.addTilesetImage(tileset.name, tileset.name));
     }
 
+    // Draws the map layers in the same order used by the map editor.
     renderMapLayers(map, tilesets) {
         map.layers.forEach((layerData, layerIndex) => {
             if (layerData.visible === false || layerData.name.endsWith("RockSlopes_Auto")) {
@@ -401,6 +404,7 @@ class Game extends Phaser.Scene {
         return lookup;
     }
 
+    // Draws objects so the player can appear in front of or behind them.
     renderObjectLayers(map, gidLookup) {
         map.objects.forEach((layer) => {
             if (layer.visible === false) {
@@ -545,6 +549,7 @@ class Game extends Phaser.Scene {
         });
     }
 
+    // Groups the dialogue box and its buttons so they can be shown together.
     createDialogueUI() {
         const camera = this.cameras.main;
         const panelWidth = camera.width * 0.44 / camera.zoom;
@@ -680,6 +685,24 @@ class Game extends Phaser.Scene {
         return option;
     }
 
+    // Hides the other choices and leaves one button in the center.
+    showOnlyLeaveOption(label = "Leave") {
+        [
+            this.knockOption,
+            this.askOption,
+            this.explainOption,
+            this.pressOption,
+            this.listenOption
+        ].forEach((option) => option.setVisible(false));
+
+        this.leaveOption.setText(label);
+        this.leaveOption.setPosition(
+            0,
+            this.dialoguePanel.displayHeight * 0.24
+        );
+    }
+
+    // Decides what happens when a dialogue choice is clicked.
     handleDialoguePointer(pointer) {
         if (!this.dialogueOpen) {
             return;
@@ -928,13 +951,7 @@ class Game extends Phaser.Scene {
 
         this.houseDialogueState[buildingId].informedAfterArrest = true;
         this.dialogueStage = `house-${buildingId}-post-arrest`;
-        this.knockOption.setVisible(false);
-        this.askOption.setVisible(false);
-        this.explainOption.setVisible(false);
-        this.pressOption.setVisible(false);
-        this.listenOption.setVisible(false);
-        this.leaveOption.setText("Leave");
-        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.showOnlyLeaveOption();
         this.dialogueText.setText(postArrestDialogue[buildingId]);
     }
 
@@ -973,11 +990,7 @@ class Game extends Phaser.Scene {
     showHouseTwoBlacksmithComment() {
         this.houseDialogueState[2].stage = "blacksmith-comment";
         this.dialogueStage = "house-2-blacksmith-comment";
-        this.knockOption.setVisible(false);
-        this.askOption.setVisible(false);
-        this.explainOption.setVisible(false);
-        this.pressOption.setVisible(false);
-        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.showOnlyLeaveOption();
         this.dialogueText.setText(
             "All this over that blacksmith? He has shifty eyes, I've always said so."
         );
@@ -1028,11 +1041,7 @@ class Game extends Phaser.Scene {
     showHouseThreeArgumentFinal() {
         this.houseDialogueState[3].argumentResolved = true;
         this.dialogueStage = "house-3-argument-final";
-        this.knockOption.setVisible(false);
-        this.askOption.setVisible(false);
-        this.explainOption.setVisible(false);
-        this.pressOption.setVisible(false);
-        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.showOnlyLeaveOption();
         this.dialogueText.setText(
             "The day before she was murdered the blacksmith had brought her a lovely bouquet of daisies, my favorite flowers. He's been head over heels for ages now, but this was the final straw. I was so jealous of her in that moment, but I truly would never murder my best friend. I feel so terrible about it now, please, you must believe me!"
         );
@@ -1060,11 +1069,7 @@ class Game extends Phaser.Scene {
     showHouseOneFinalInformation() {
         this.houseDialogueState[1].situationExplained = true;
         this.dialogueStage = "house-1-final";
-        this.knockOption.setVisible(false);
-        this.askOption.setVisible(false);
-        this.explainOption.setVisible(false);
-        this.pressOption.setVisible(false);
-        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.showOnlyLeaveOption();
         this.dialogueText.setText(
             "He wouldn't talk to you? That figures. He's always been a bit of a weird one but he's been acting even more out of character recently. Since Luna's death he's been reclusive and refuses to leave his house. I can't tell if it's grief or if he has something to hide. Sometimes he mumbles to himself but I can never quite hear what he's saying"
         );
@@ -1073,11 +1078,7 @@ class Game extends Phaser.Scene {
     showBlacksmithInformation() {
         this.houseDialogueState[4].informationAsked = true;
         this.dialogueStage = "house-4-information";
-        this.knockOption.setVisible(false);
-        this.askOption.setVisible(false);
-        this.explainOption.setVisible(false);
-        this.pressOption.setVisible(false);
-        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.showOnlyLeaveOption();
         this.dialogueText.setText(
             "I don't know anything about the murder and I don't want to talk. Leave. Now."
         );
@@ -1087,13 +1088,7 @@ class Game extends Phaser.Scene {
         this.houseDialogueState[4].approachHeard = true;
         this.currentDoor = door;
         this.dialogueStage = "house-4-approach";
-        this.knockOption.setVisible(false);
-        this.askOption.setVisible(false);
-        this.explainOption.setVisible(false);
-        this.pressOption.setVisible(false);
-        this.listenOption.setVisible(false);
-        this.leaveOption.setText("I should probably go investigate");
-        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.showOnlyLeaveOption("I should probably go investigate");
         this.dialogueText.setText(
             "You hear noises coming from the blacksmith's house. There's a brief banging noise, some faint cursing, and then silence."
         );
@@ -1106,12 +1101,7 @@ class Game extends Phaser.Scene {
     showBlacksmithEavesdropping() {
         this.houseDialogueState[4].listened = true;
         this.dialogueStage = "house-4-listened";
-        this.knockOption.setVisible(false);
-        this.askOption.setVisible(false);
-        this.explainOption.setVisible(false);
-        this.pressOption.setVisible(false);
-        this.listenOption.setVisible(false);
-        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.showOnlyLeaveOption();
         this.dialogueText.setText(
             'You hear the blacksmith muttering, "Keys, papers, tools, what else am I missing? Oh, I should have gotten out of here sooner, now there\'s a detective after me. What am I going to do?"'
         );
@@ -1119,25 +1109,14 @@ class Game extends Phaser.Scene {
 
     showBlacksmithGone() {
         this.dialogueStage = "house-4-gone";
-        this.knockOption.setVisible(false);
-        this.askOption.setVisible(false);
-        this.explainOption.setVisible(false);
-        this.pressOption.setVisible(false);
-        this.listenOption.setVisible(false);
-        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.showOnlyLeaveOption();
         this.dialogueText.setText("No one answers.");
     }
 
     showInvestigationPopup(stage, text, optionText) {
         this.currentDoor = null;
         this.dialogueStage = stage;
-        this.knockOption.setVisible(false);
-        this.askOption.setVisible(false);
-        this.explainOption.setVisible(false);
-        this.pressOption.setVisible(false);
-        this.listenOption.setVisible(false);
-        this.leaveOption.setText(optionText);
-        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.showOnlyLeaveOption(optionText);
         this.dialogueText.setText(text);
         this.player.anims.stop();
         this.updatePlayerAnimation(0, 0);
@@ -1173,13 +1152,7 @@ class Game extends Phaser.Scene {
 
     showFugitiveEncounter() {
         this.dialogueStage = "blacksmith-caught";
-        this.knockOption.setVisible(false);
-        this.askOption.setVisible(false);
-        this.explainOption.setVisible(false);
-        this.pressOption.setVisible(false);
-        this.listenOption.setVisible(false);
-        this.leaveOption.setText("You killed Luna Lovely.");
-        this.leaveOption.setPosition(0, this.dialoguePanel.displayHeight * 0.24);
+        this.showOnlyLeaveOption("You killed Luna Lovely.");
         this.dialogueText.setText(
             "You catch the blacksmith at the edge of town and call out for him to stop. He turns around in surprise and stops, fiddling with his bag and refusing to make eye contact."
         );
@@ -1267,6 +1240,7 @@ class Game extends Phaser.Scene {
         }
     }
 
+    // Places an interaction area over each building door.
     createDoorTriggers(map, gidLookup) {
         const doorsByTileId = {
             0: [{ x: 34, y: 70, width: 22, height: 21 }],
@@ -1318,6 +1292,7 @@ class Game extends Phaser.Scene {
         });
     }
 
+    // Finds important investigation locations directly from the map.
     createInvestigationTriggers(map, gidLookup) {
         const propObjects = [];
 
@@ -1492,6 +1467,7 @@ class Game extends Phaser.Scene {
         return true;
     }
 
+    // Shows each footprint clue only after the previous clue was found.
     checkInvestigationTrail() {
         const blacksmithState = this.houseDialogueState[4];
 
@@ -1786,6 +1762,7 @@ class Game extends Phaser.Scene {
         return this.findBottomRightSpawn(worldWidth, worldHeight);
     }
 
+    // Checks horizontal and vertical movement separately to avoid getting stuck on walls.
     movePlayer(deltaX, deltaY) {
         const startX = this.player.x;
         const startY = this.player.y;
@@ -1820,6 +1797,7 @@ class Game extends Phaser.Scene {
         };
     }
 
+    // Checks collisions around the player's feet instead of the whole character image.
     playerCollidesAt(x, y) {
         const footBox = new Phaser.Geom.Rectangle(x - 6, y + 3, 12, 9);
 
